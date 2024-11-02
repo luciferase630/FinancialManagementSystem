@@ -1,18 +1,21 @@
 package UI;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 
 public class Body {
     private JFrame mainFrame;
+    private static final String FILE_NAME = "finance_data.csv";
 
     public Body() {
         initialize();
+        initializeCSVFile(); // 初始化 CSV 文件
     }
 
     private void initialize() {
@@ -52,11 +55,25 @@ public class Body {
         mainFrame.setVisible(true);
     }
 
+    private void initializeCSVFile() {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) {
+            try {
+                // 创建 CSV 文件并写入表头
+                FileWriter writer = new FileWriter(FILE_NAME);
+                writer.write("类别,金额,日期,描述\n"); // CSV 表头
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void enterFinanceData() {
         JFrame dataEntryFrame = new JFrame("财务数据录入");
         dataEntryFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         dataEntryFrame.setSize(400, 300);
-        dataEntryFrame.setLayout(new GridLayout(4, 2));
+        dataEntryFrame.setLayout(new GridLayout(5, 2)); // 调整为5行布局
 
         JTextField categoryField = new JTextField();
         JTextField amountField = new JTextField();
@@ -83,14 +100,21 @@ public class Body {
 
                 try {
                     amount = Double.parseDouble(amountField.getText());
-                    if (amount == 0) {
-                        throw new NumberFormatException("金额不能为零");
+                    if (amount <= 0) {
+                        throw new NumberFormatException("金额必须大于零");
                     }
-                    // 这里可以添加将数据保存到CSV的逻辑
+
+                    // 保存到 CSV 文件
+                    try (FileWriter writer = new FileWriter(FILE_NAME, true)) {
+                        writer.write(category + "," + amount + "," + dateField.getText() + "," + descriptionField.getText() + "\n");
+                    }
+
                     JOptionPane.showMessageDialog(dataEntryFrame, "录入成功: " + category + " - " + amount);
                     dataEntryFrame.dispose(); // 关闭数据录入界面
                 } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(dataEntryFrame, "请输入有效的金额!", "错误", JOptionPane.ERROR_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(dataEntryFrame, "保存数据时出错。", "错误", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -105,7 +129,7 @@ public class Body {
         JTextArea textArea = new JTextArea();
         textArea.setEditable(false);
 
-        try (BufferedReader br = new BufferedReader(new FileReader("finance_data.csv"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
                 textArea.append(line + "\n");
